@@ -104,6 +104,16 @@ backups per addon are kept. `forever-addons rollback <name>` restores the most
 recent one in every install (and consumes it, so a second rollback goes one
 step further back).
 
+## Running it automatically
+
+`forever-addons update` is safe to run unattended: it refuses to touch files
+while a `game_processes` match is running and exits non-zero on errors. A good
+moment is right after the game closes. On macOS, a LaunchAgent that runs every
+couple of minutes, remembers when WoW was running, and calls
+`forever-addons update` once it has closed works well. Install the tool with
+`uv tool install` or `pipx` rather than running it from a folder under
+Desktop or Documents, which macOS blocks for background jobs.
+
 ## About CurseForge
 
 With a CurseForge API key (`CURSEFORGE_API_KEY`, from
