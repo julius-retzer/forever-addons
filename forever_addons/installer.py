@@ -158,7 +158,7 @@ def install(addon: dict, cfg: Config, state: dict, release: sources.Release | No
     release = release or sources.latest(addon, cfg)
     entry = state.get(addon["name"], {})
     stamp = _stamp()
-    with tempfile.TemporaryDirectory(prefix="wowaddons-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="forever-addons-") as tmp:
         staged, folders = _stage(release, Path(tmp))
         if not folders:
             raise InstallError(f"{addon['name']}: release {release.filename} contains no addon folders")

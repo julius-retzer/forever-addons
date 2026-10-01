@@ -1,4 +1,4 @@
-"""Command line: wowaddons <command> ..."""
+"""Command line: forever-addons <command> ..."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from . import __version__, config, installer, patches, sources
 
 EXAMPLE_CONFIG = {
     "installs": [
-        {"name": "main", "addons_dir": "/Applications/World of Warcraft/_classic_/Interface/AddOns"}
+        {"name": "main", "addons_dir": "/Applications/World of Warcraft/_classic_beta_/Interface/AddOns"}
     ],
-    "game_processes": [r"World of Warcraft\.app/Contents/MacOS/World of Warcraft", r"\bWow(Classic|B)?\.exe"],
-    "game_version": None,
-    "backup_dir": "~/.config/wowaddons/backups",
+    "game_processes": [r"^/Applications/.*World of Warcraft Beta\.app/Contents/MacOS/World of Warcraft", r"^C:.*\\WowB\.exe"],
+    "game_version": "1.60.1",
+    "backup_dir": "~/.config/forever-addons/backups",
     "keep_backups": 5,
 }
 
@@ -201,8 +201,8 @@ def cmd_adopt(args) -> int:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="wowaddons", description="Install and update WoW addons from CurseForge and GitHub.")
-    p.add_argument("--version", action="version", version=f"wowaddons {__version__}")
+    p = argparse.ArgumentParser(prog="forever-addons", description="Install and update WoW Forever addons from CurseForge and GitHub.")
+    p.add_argument("--version", action="version", version=f"forever-addons {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("init", help="create a starter config").set_defaults(fn=cmd_init)

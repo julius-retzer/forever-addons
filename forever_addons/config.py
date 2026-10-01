@@ -1,10 +1,10 @@
 """Configuration, manifest and state files.
 
-All three live in one directory: $WOWADDONS_HOME, or ~/.config/wowaddons.
+All three live in one directory: $FOREVER_ADDONS_HOME, or ~/.config/forever-addons.
 
 config.json   where your WoW installs are and how to tell the game is running
 addons.json   the addons you manage: source, folders, local patches
-state.json    what is installed (written by wowaddons, do not edit)
+state.json    what is installed (written by forever-addons, do not edit)
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class ConfigError(Exception):
 
 
 def home() -> Path:
-    return Path(os.environ.get("WOWADDONS_HOME", Path.home() / ".config" / "wowaddons")).expanduser()
+    return Path(os.environ.get("FOREVER_ADDONS_HOME", Path.home() / ".config" / "forever-addons")).expanduser()
 
 
 @dataclass
@@ -61,7 +61,7 @@ def load_config(base: Path | None = None) -> Config:
     path = base / "config.json"
     raw = _read_json(path, None)
     if raw is None:
-        raise ConfigError(f"No config at {path}. Run `wowaddons init` first.")
+        raise ConfigError(f"No config at {path}. Run `forever-addons init` first.")
     installs = [Install(i["name"], Path(i["addons_dir"]).expanduser()) for i in raw.get("installs", [])]
     if not installs:
         raise ConfigError(f"{path}: `installs` is empty.")

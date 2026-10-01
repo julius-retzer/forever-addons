@@ -1,17 +1,18 @@
-# wowaddons
+# forever-addons
 
-A small command-line addon manager for World of Warcraft. It installs and
-updates addons from **CurseForge** and **GitHub releases**, into **one or
-more WoW installs at once** (for example a native Mac client and a Windows
-client under CrossOver), and it re-applies **your own local patches** after
-every update.
+A small command-line addon manager for **World of Warcraft: Forever** (and any
+other WoW client). It installs and updates addons from **CurseForge** and
+**GitHub releases**, into **one or more WoW installs at once** (for example the
+native Mac client and the Windows client under CrossOver), and it re-applies
+**your own local patches** after every update, such as a Forever `.toc` for
+an addon whose author has not added one yet.
 
-- `wowaddons check`: installed vs newest version of every addon
-- `wowaddons update [names…] [--wait]`: download, back up, install everywhere, re-patch
-- `wowaddons add cf:<id> | gh:owner/repo | <url> | <path>`: add and install an addon
-- `wowaddons remove <name>` / `wowaddons rollback <name>`
-- `wowaddons patch [names…]`: re-apply local patches without reinstalling
-- `wowaddons adopt`: start managing addons you already have installed
+- `forever-addons check`: installed vs newest version of every addon
+- `forever-addons update [names…] [--wait]`: download, back up, install everywhere, re-patch
+- `forever-addons add cf:<id> | gh:owner/repo | <url> | <path>`: add and install an addon
+- `forever-addons remove <name>` / `forever-addons rollback <name>`
+- `forever-addons patch [names…]`: re-apply local patches without reinstalling
+- `forever-addons adopt`: start managing addons you already have installed
 
 Python 3.10+, standard library only. Tested on macOS; it should work on
 Linux and Windows too.
@@ -19,29 +20,29 @@ Linux and Windows too.
 ## Install
 
 ```sh
-pipx install git+https://github.com/<you>/wowaddons
+pipx install git+https://github.com/julius-retzer/forever-addons
 # or, from a checkout:
-python3 -m wowaddons --help
+python3 -m forever_addons --help
 ```
 
 ## Set up
 
 ```sh
-wowaddons init
+forever-addons init
 ```
 
-This writes `~/.config/wowaddons/config.json` (or `$WOWADDONS_HOME`). Point
+This writes `~/.config/forever-addons/config.json` (or `$FOREVER_ADDONS_HOME`). Point
 `installs` at your `Interface/AddOns` folder(s):
 
 ```json
 {
   "installs": [
-    {"name": "mac", "addons_dir": "/Applications/World of Warcraft/_classic_/Interface/AddOns"},
-    {"name": "windows", "addons_dir": "~/Games/wow/drive_c/Program Files (x86)/World of Warcraft/_classic_/Interface/AddOns"}
+    {"name": "mac", "addons_dir": "/Applications/World of Warcraft/_classic_beta_/Interface/AddOns"},
+    {"name": "windows", "addons_dir": "~/Library/Application Support/CrossOver/Bottles/<bottle>/drive_c/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns"}
   ],
-  "game_processes": ["^/Applications/.*World of Warcraft\\.app/Contents/MacOS/World of Warcraft", "^C:.*\\\\Wow\\.exe"],
-  "game_version": "1.15.7",
-  "backup_dir": "~/.config/wowaddons/backups",
+  "game_processes": ["^/Applications/.*World of Warcraft Beta\\.app/Contents/MacOS/World of Warcraft", "^C:.*\\\\WowB\\.exe"],
+  "game_version": "1.60.1",
+  "backup_dir": "~/.config/forever-addons/backups",
   "keep_backups": 5
 }
 ```
@@ -50,7 +51,7 @@ This writes `~/.config/wowaddons/config.json` (or `$WOWADDONS_HOME`). Point
   lines. While one matches, `update` refuses to touch files (or waits, with
   `--wait`), because the game writes addon settings on exit.
 - `game_version`: CurseForge game version to pick files for (as shown in a
-  file's "Game Version"), or `null` for "newest file".
+  file's "Game Version"; WoW Forever is `1.60.1`), or `null` for "newest file".
 
 ## The manifest: `addons.json`
 
@@ -99,14 +100,14 @@ of breaking the update.
 
 Before replacing or removing anything, the folders are copied to
 `backup_dir/<addon>/<timestamp>/<install>/`. The newest `keep_backups`
-backups per addon are kept. `wowaddons rollback <name>` restores the most
+backups per addon are kept. `forever-addons rollback <name>` restores the most
 recent one in every install (and consumes it, so a second rollback goes one
 step further back).
 
 ## About CurseForge
 
 With a CurseForge API key (`CURSEFORGE_API_KEY`, from
-<https://console.curseforge.com>) wowaddons uses the official API, which also
+<https://console.curseforge.com>) forever-addons uses the official API, which also
 lets you add addons by URL. Without a key it falls back to the public file
 list of the curseforge.com website, which only works by project ID and may
 change without notice. Some authors disable third-party downloads; those

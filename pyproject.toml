@@ -3,16 +3,16 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wowaddons"
+name = "forever-addons"
 version = "0.1.0"
-description = "Command-line World of Warcraft addon manager for CurseForge and GitHub releases, multi-install, with local patches."
+description = "Command-line WoW Forever addon manager for CurseForge and GitHub releases, multi-install, with local patches."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 dependencies = []
 
 [project.scripts]
-wowaddons = "wowaddons.cli:main"
+forever-addons = "forever_addons.cli:main"
 
 [tool.setuptools]
-packages = ["wowaddons"]
+packages = ["forever_addons"]

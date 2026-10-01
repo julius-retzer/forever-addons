@@ -5,7 +5,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from wowaddons import cli, config, installer, patches, sources
+from forever_addons import cli, config, installer, patches, sources
 
 
 def make_zip(path: Path, files: dict[str, str]) -> Path:
@@ -16,7 +16,7 @@ def make_zip(path: Path, files: dict[str, str]) -> Path:
 
 
 class Env:
-    """A temp WOWADDONS_HOME with two installs."""
+    """A temp FOREVER_ADDONS_HOME with two installs."""
 
     def __init__(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -31,13 +31,13 @@ class Env:
             "backup_dir": str(self.root / "backups"),
             "keep_backups": 3,
         }))
-        os.environ["WOWADDONS_HOME"] = str(self.home)
+        os.environ["FOREVER_ADDONS_HOME"] = str(self.home)
 
     def manifest(self, addons):
         (self.home / "addons.json").write_text(json.dumps({"addons": addons}))
 
     def close(self):
-        os.environ.pop("WOWADDONS_HOME", None)
+        os.environ.pop("FOREVER_ADDONS_HOME", None)
         self.tmp.cleanup()
 
 

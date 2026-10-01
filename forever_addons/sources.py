@@ -22,7 +22,7 @@ from pathlib import Path
 
 from . import __version__
 
-USER_AGENT = f"wowaddons/{__version__}"
+USER_AGENT = f"forever-addons/{__version__}"
 
 
 class SourceError(Exception):
