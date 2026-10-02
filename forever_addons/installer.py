@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import filecmp
 import fnmatch
+import os
 import re
 import shutil
 import subprocess
@@ -122,10 +124,29 @@ def _backup(cfg: Config, addon_name: str, stamp: str, install_name: str, addons_
         return None
     dest = cfg.backup_dir / addon_name / stamp / install_name
     dest.mkdir(parents=True, exist_ok=True)
+    siblings = [d for d in dest.parent.iterdir() if d.is_dir() and d != dest]
     for f in folders:
-        shutil.copytree(addons_dir / f, dest / f, symlinks=True)
+        shutil.copytree(addons_dir / f, dest / f, symlinks=True, copy_function=_linker(addons_dir, dest, siblings))
     _prune_backups(cfg, addon_name, keep)
     return dest.parent
+
+
+def _linker(src_root: Path, dest_root: Path, siblings: list[Path]):
+    """copy_function for copytree: hard-link a file from another install's backup
+    of the same operation when it is identical, so identical installs cost the
+    disk space of one."""
+    def copy(src, dst):
+        rel = Path(dst).relative_to(dest_root)
+        for sib in siblings:
+            cand = sib / rel
+            try:
+                if cand.is_file() and filecmp.cmp(src, cand, shallow=False):
+                    os.link(cand, dst)
+                    return dst
+            except OSError:
+                pass
+        return shutil.copy2(src, dst)
+    return copy
 
 
 def _prune_backups(cfg: Config, addon_name: str, keep: int | None = None) -> None:

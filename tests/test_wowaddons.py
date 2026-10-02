@@ -138,6 +138,15 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(self.run_cli("update", "--force"), 0)
         self.assertEqual(len(list((self.env.root / "backups" / "Foo").iterdir())), 1)
 
+    def test_identical_installs_share_backup_files(self):
+        z = self.zip_v("1.0")
+        self.env.manifest([{"name": "Foo", "source": {"type": "local", "path": str(z)}}])
+        self.assertEqual(self.run_cli("update"), 0)
+        self.assertEqual(self.run_cli("update", "--force"), 0)
+        stamp = next((self.env.root / "backups" / "Foo").iterdir())
+        a, b = stamp / "win" / "Foo" / "Foo.lua", stamp / "mac" / "Foo" / "Foo.lua"
+        self.assertEqual(a.stat().st_ino, b.stat().st_ino)
+
     def test_pinned_is_never_touched(self):
         (self.env.a / "Mine").mkdir()
         self.env.manifest([{"name": "Mine", "pinned": True}])
