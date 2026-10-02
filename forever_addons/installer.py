@@ -95,14 +95,19 @@ def _stage(release: sources.Release, workdir: Path) -> tuple[Path, list[str]]:
 
 # --- folders owned by an addon ----------------------------------------------
 
-def owned_folders(addon: dict, state_entry: dict | None, addons_dir: Path) -> list[str]:
+def others_owned(state: dict, name: str) -> set[str]:
+    """Folders that other managed addons installed (never ours to delete)."""
+    return {f for n, e in state.items() if n != name for f in (e or {}).get("folders", [])}
+
+
+def owned_folders(addon: dict, state_entry: dict | None, addons_dir: Path, exclude: set[str] = frozenset()) -> list[str]:
     """Folders to remove before installing: what we installed last time plus any
-    `replaces` globs (old names after a rename)."""
+    `folders`/`replaces` globs, minus folders another addon owns (`exclude`)."""
     names = set((state_entry or {}).get("folders", []))
     present = [p.name for p in addons_dir.iterdir() if p.is_dir()] if addons_dir.exists() else []
     for pat in addon.get("folders", []) + addon.get("replaces", []):
         names.update(n for n in present if fnmatch.fnmatchcase(n, pat))
-    return sorted(n for n in names if (addons_dir / n).exists())
+    return sorted(n for n in names if (addons_dir / n).exists() and n not in exclude)
 
 
 # --- backups ----------------------------------------------------------------
@@ -112,23 +117,24 @@ def _stamp() -> str:
     return datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")[:-3]
 
 
-def _backup(cfg: Config, addon_name: str, stamp: str, install_name: str, addons_dir: Path, folders: list[str]) -> Path | None:
+def _backup(cfg: Config, addon_name: str, stamp: str, install_name: str, addons_dir: Path, folders: list[str], keep: int | None = None) -> Path | None:
     if not folders:
         return None
     dest = cfg.backup_dir / addon_name / stamp / install_name
     dest.mkdir(parents=True, exist_ok=True)
     for f in folders:
         shutil.copytree(addons_dir / f, dest / f, symlinks=True)
-    _prune_backups(cfg, addon_name)
+    _prune_backups(cfg, addon_name, keep)
     return dest.parent
 
 
-def _prune_backups(cfg: Config, addon_name: str) -> None:
+def _prune_backups(cfg: Config, addon_name: str, keep: int | None = None) -> None:
     root = cfg.backup_dir / addon_name
     if not root.exists():
         return
+    keep = cfg.keep_backups if keep is None else keep
     stamps = sorted((p for p in root.iterdir() if p.is_dir()), reverse=True)
-    for old in stamps[cfg.keep_backups:]:
+    for old in stamps[max(keep, 1):]:
         shutil.rmtree(old, ignore_errors=True)
 
 
@@ -167,8 +173,11 @@ def install(addon: dict, cfg: Config, state: dict, release: sources.Release | No
             if not inst.addons_dir.exists():
                 log(f"    [{inst.name}] skipped: {inst.addons_dir} not found")
                 continue
-            old = sorted(set(owned_folders(addon, entry, inst.addons_dir)) | {f for f in folders if (inst.addons_dir / f).exists()})
-            bk = _backup(cfg, addon["name"], stamp, inst.name, inst.addons_dir, old)
+            # A folder the new release ships is ours now, even if another addon
+            # installed it before (authors move folders between packages).
+            others = others_owned(state, addon["name"]) - set(folders)
+            old = sorted(set(owned_folders(addon, entry, inst.addons_dir, others)) | {f for f in folders if (inst.addons_dir / f).exists()})
+            bk = _backup(cfg, addon["name"], stamp, inst.name, inst.addons_dir, old, addon.get("keep_backups"))
             for f in old:
                 shutil.rmtree(inst.addons_dir / f)
             for f in folders:
@@ -184,6 +193,9 @@ def install(addon: dict, cfg: Config, state: dict, release: sources.Release | No
         "installed_at": datetime.now().isoformat(timespec="seconds"),
     }
     state[addon["name"]] = new
+    for n, e in state.items():  # hand over folders this release took from another addon
+        if n != addon["name"] and e and e.get("folders"):
+            e["folders"] = [f for f in e["folders"] if f not in folders]
     return new
 
 
@@ -193,8 +205,8 @@ def remove(addon: dict, cfg: Config, state: dict, log=print) -> None:
     for inst in cfg.installs:
         if not inst.addons_dir.exists():
             continue
-        old = owned_folders(addon, entry, inst.addons_dir)
-        bk = _backup(cfg, addon["name"], stamp, inst.name, inst.addons_dir, old)
+        old = owned_folders(addon, entry, inst.addons_dir, others_owned(state, addon["name"]))
+        bk = _backup(cfg, addon["name"], stamp, inst.name, inst.addons_dir, old, addon.get("keep_backups"))
         for f in old:
             shutil.rmtree(inst.addons_dir / f)
         log(f"    [{inst.name}] removed {', '.join(old) or 'nothing'}" + (f" (backup: {bk})" if bk else ""))
@@ -210,7 +222,7 @@ def rollback(addon: dict, cfg: Config, state: dict, log=print) -> None:
         src = bk / inst.name
         if not src.exists() or not inst.addons_dir.exists():
             continue
-        for f in owned_folders(addon, entry, inst.addons_dir):
+        for f in owned_folders(addon, entry, inst.addons_dir, others_owned(state, addon["name"])):
             shutil.rmtree(inst.addons_dir / f)
         restored = []
         for d in sorted(p for p in src.iterdir() if p.is_dir()):

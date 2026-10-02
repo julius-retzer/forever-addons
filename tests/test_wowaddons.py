@@ -115,6 +115,29 @@ class InstallTests(unittest.TestCase):
         names = sorted(p.name for p in self.env.a.iterdir())
         self.assertEqual(names, ["AtlasLootContinued", "Unrelated"])
 
+    def test_folder_moved_between_packages_is_not_deleted(self):
+        # Player ships Shared; Quests used to list Shared in its folders globs.
+        zp = make_zip(self.env.root / "player.zip", {"Player/Player.toc": "## Version: 1\n", "Shared/Shared.toc": "## Version: 1\n"})
+        zq = make_zip(self.env.root / "quests.zip", {"Quests/Quests.toc": "## Version: 1\n"})
+        self.env.manifest([
+            {"name": "Player", "source": {"type": "local", "path": str(zp)}, "folders": ["Player", "Shared"]},
+            {"name": "Quests", "source": {"type": "local", "path": str(zq)}, "folders": ["Quests", "Shared"]},
+        ])
+        self.assertEqual(self.run_cli("update"), 0)
+        for d in (self.env.a, self.env.b):
+            self.assertTrue((d / "Shared").exists(), "Quests must not delete a folder Player owns")
+            self.assertTrue((d / "Quests").exists())
+        self.assertEqual(self.run_cli("remove", "Quests"), 0)
+        self.assertTrue((self.env.a / "Shared").exists())
+
+    def test_per_addon_keep_backups(self):
+        z = self.zip_v("1.0")
+        self.env.manifest([{"name": "Foo", "source": {"type": "local", "path": str(z)}, "keep_backups": 1}])
+        self.assertEqual(self.run_cli("update"), 0)
+        for i in range(3):
+            self.assertEqual(self.run_cli("update", "--force"), 0)
+        self.assertEqual(len(list((self.env.root / "backups" / "Foo").iterdir())), 1)
+
     def test_pinned_is_never_touched(self):
         (self.env.a / "Mine").mkdir()
         self.env.manifest([{"name": "Mine", "pinned": True}])
